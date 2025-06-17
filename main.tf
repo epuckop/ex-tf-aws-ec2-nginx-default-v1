@@ -139,10 +139,17 @@ resource "local_file" "private_key" {
   file_permission = "0600"
 }
 
+# Wait for the EC2 instance to be in a running state before proceeding
+resource "time_sleep" "default" {
+  depends_on = [aws_instance.default]
+  create_duration = "300s"
+}
+
 # test that ansible is instlled and working
 resource "null_resource" "ansible_test" {
   triggers = { always_run = timestamp() }
   provisioner "local-exec" { command = "ansible --version" }
+  depends_on = [ time_sleep.default ]
 }
 
 resource "null_resource" "ansible" {
@@ -152,7 +159,7 @@ resource "null_resource" "ansible" {
     command = <<-EOT
       ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook \
         -i '${aws_instance.default.public_ip},' \
-        -u ec2-user \
+        -u '${var.ec2_user}' \
         --private-key='${local_file.private_key.filename}' \
         ${path.module}/ansible/nginx.yml \
         > ${path.module}/${aws_instance.default.public_ip}-ansible.log 2>&1

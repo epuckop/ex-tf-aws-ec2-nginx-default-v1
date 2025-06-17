@@ -61,3 +61,9 @@ variable "instance_type" {
   default     = "t3.micro"
   description = "The type of EC2 instance to create. Default is t3.micro."
 }
+
+variable "ec2_user" {
+  description = "The user to connect to the EC2 instance, default is ec2-user"
+  type        = string
+  default     = "ec2-user" 
+}
