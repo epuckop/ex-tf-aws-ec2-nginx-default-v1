@@ -15,6 +15,11 @@ output "myip" {
   description = "The public IP address of the machine running this Terraform configuration"
 }
 
+output "serverip" {
+  value       = aws_eip.default.public_ip
+  description = "The public IP address of the EC2 instance"
+}
+
 # output "azs" {
 #   value = data.aws_availability_zones.available.names
 # }

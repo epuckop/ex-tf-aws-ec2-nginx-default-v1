@@ -140,29 +140,37 @@ resource "local_file" "private_key" {
 }
 
 # Wait for the EC2 instance to be in a running state before proceeding
-resource "time_sleep" "default" {
-  depends_on = [aws_instance.default]
-  create_duration = "300s"
+resource "null_resource" "wait_for_ssh" {
+  depends_on = [aws_instance.default, local_file.private_key]
+  provisioner "local-exec" {
+    command     = <<-EOT
+    bash wait_for_ssh.sh \
+      '${var.ec2_user}' \
+      '${aws_eip.default.public_ip}' \
+      600 \
+      '${local_file.private_key.filename}'
+    EOT
+    working_dir = path.module
+  }
 }
 
 # test that ansible is instlled and working
 resource "null_resource" "ansible_test" {
   triggers = { always_run = timestamp() }
   provisioner "local-exec" { command = "ansible --version" }
-  depends_on = [ time_sleep.default ]
 }
 
 resource "null_resource" "ansible" {
-  depends_on = [aws_instance.default, local_file.private_key, null_resource.ansible_test]
+  depends_on = [aws_instance.default, local_file.private_key, null_resource.ansible_test, null_resource.wait_for_ssh]
   triggers   = { always_run = timestamp() }
   provisioner "local-exec" {
     command = <<-EOT
       ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook \
-        -i '${aws_instance.default.public_ip},' \
+        -i '${aws_eip.default.public_ip},' \
         -u '${var.ec2_user}' \
         --private-key='${local_file.private_key.filename}' \
         ${path.module}/ansible/nginx.yml \
-        > ${path.module}/${aws_instance.default.public_ip}-ansible.log 2>&1
+        > ${path.module}/${aws_eip.default.public_ip}-ansible.log 2>&1
     EOT
   }
 }

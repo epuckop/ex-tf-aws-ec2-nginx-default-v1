@@ -65,5 +65,5 @@ variable "instance_type" {
 variable "ec2_user" {
   description = "The user to connect to the EC2 instance, default is ec2-user"
   type        = string
-  default     = "ec2-user" 
+  default     = "ec2-user"
 }
